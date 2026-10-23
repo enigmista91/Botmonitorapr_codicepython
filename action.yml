@@ -1,0 +1,74 @@
+name: "Odoo PR Review & OCA Workflow Bot"
+description: "Bot per code review statica/AI e workflow OCA su PR di moduli Odoo (18.0, 19.0, 20.0)"
+author: "enigmista91"
+
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  github_token:
+    description: "GitHub Token per commentare, etichettare e fare merge delle PR"
+    required: true
+  target_odoo_series:
+    description: "Serie Odoo di default se il branch non è 18.0/19.0/20.0"
+    required: false
+    default: "18.0"
+  supported_odoo_series:
+    description: "Serie Odoo supportate separate da virgola"
+    required: false
+    default: "18.0,19.0,20.0"
+  command_prefixes:
+    description: "Prefissi comando nei commenti PR"
+    required: false
+    default: "/bot,/ocabot"
+  required_approvals:
+    description: "Numero minimo di approvazioni per la label approved"
+    required: false
+    default: "1"
+  ai_review_enabled:
+    description: "Abilita o disabilita la review AI sul diff"
+    required: false
+    default: "true"
+  ai_provider:
+    description: "Provider AI (gemini oppure openai)"
+    required: false
+    default: "gemini"
+  gemini_api_key:
+    description: "API Key per Google Gemini (opzionale)"
+    required: false
+    default: ""
+  openai_api_key:
+    description: "API Key per OpenAI (opzionale)"
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Python 3.12
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install Odoo PR Bot dependencies
+      shell: bash
+      run: |
+        python -m venv "${{ runner.temp }}/odoo-bot-venv"
+        "${{ runner.temp }}/odoo-bot-venv/bin/pip" install --quiet -r "${{ github.action_path }}/requirements.txt"
+
+    - name: Run Odoo PR Bot
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        TARGET_ODOO_SERIES: ${{ inputs.target_odoo_series }}
+        SUPPORTED_ODOO_SERIES: ${{ inputs.supported_odoo_series }}
+        BOT_COMMAND_PREFIXES: ${{ inputs.command_prefixes }}
+        REQUIRED_APPROVALS: ${{ inputs.required_approvals }}
+        AI_REVIEW_ENABLED: ${{ inputs.ai_review_enabled }}
+        AI_PROVIDER: ${{ inputs.ai_provider }}
+        GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+      run: |
+        "${{ runner.temp }}/odoo-bot-venv/bin/python" -m odoo_pr_bot.cli github-action
