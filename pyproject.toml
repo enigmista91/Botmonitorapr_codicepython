@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=60.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "odoo-pr-bot"
+version = "1.0.0"
+description = "Bot per la review automatica e gestione PR di moduli Odoo 18.0, 19.0 e 20.0 (ispirato a OCA/oca-github-bot)"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "LGPL-3.0-or-later"}
+dependencies = [
+    "fastapi>=0.95.0",
+    "uvicorn>=0.20.0",
+    "httpx>=0.23.0",
+    "pydantic>=1.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.20.0",
+]
+
+[project.scripts]
+odoo-pr-bot = "odoo_pr_bot.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

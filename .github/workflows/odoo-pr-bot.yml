@@ -1,0 +1,51 @@
+name: Odoo PR Bot (18.0 / 19.0 / 20.0)
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited]
+    branches:
+      - "18.0"
+      - "19.0"
+      - "20.0"
+      - "main"
+      - "master"
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: read
+
+jobs:
+  odoo-bot:
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       (startsWith(github.event.comment.body, '/bot') || startsWith(github.event.comment.body, '/ocabot')))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Bot Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Execute Odoo PR Bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TARGET_ODOO_SERIES: "18.0"
+          SUPPORTED_ODOO_SERIES: "18.0,19.0,20.0"
+        run: |
+          .venv/bin/python -m odoo_pr_bot.cli github-action

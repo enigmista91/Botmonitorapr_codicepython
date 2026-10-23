@@ -1,0 +1,9 @@
+services:
+  odoo-pr-bot:
+    build: .
+    container_name: odoo-pr-bot
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
