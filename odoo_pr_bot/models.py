@@ -77,9 +77,10 @@ class PRContext:
     title: str
     body: str = ""
     author: str = ""
-    base_branch: str = "17.0"
+    base_branch: str = "18.0"
     head_branch: str = ""
     head_sha: str = ""
+    head_repo_full_name: str = ""
     is_draft: bool = False
     created_at_iso: str | None = None
     current_labels: list[str] = field(default_factory=list)

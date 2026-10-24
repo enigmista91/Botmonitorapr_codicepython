@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import base64
 import logging
+import subprocess
+import tempfile
 from typing import Any
 import httpx
 
@@ -44,6 +46,9 @@ class GitHubClient:
             head_sha = pr_data["head"]["sha"]
             base_branch = pr_data["base"]["ref"]
             head_branch = pr_data["head"]["ref"]
+            head_repo_full_name = (
+                (pr_data["head"].get("repo") or {}).get("full_name") or repo_full_name
+            )
             current_labels = [lbl["name"] for lbl in pr_data.get("labels", [])]
 
             # 2. Revisioni (approvazioni / richieste modifiche)
@@ -109,6 +114,7 @@ class GitHubClient:
                 base_branch=base_branch,
                 head_branch=head_branch,
                 head_sha=head_sha,
+                head_repo_full_name=head_repo_full_name,
                 is_draft=bool(pr_data.get("draft", False)),
                 created_at_iso=pr_data.get("created_at"),
                 current_labels=current_labels,
@@ -338,3 +344,96 @@ class GitHubClient:
                 return True, "Merge completato con successo."
             data = resp.json()
             return False, data.get("message", f"HTTP {resp.status_code}")
+
+    async def rebase_pull_request(self, pr: PRContext) -> tuple[bool, str]:
+        """Esegue il rebase del branch della PR sul base_branch in stile `/ocabot rebase`.
+
+        1. Tenta prima un vero `git rebase` lineare + `git push --force-with-lease`
+           (come `OCA/oca-github-bot`).
+        2. Se l'ambiente non consente il push git diretto (es. assenza di git CLI),
+           esegue il fallback all'endpoint GitHub API `/pulls/{pr}/update-branch`.
+        """
+        if self.config.github_token:
+            ok, msg = self._git_cli_rebase(pr)
+            if ok or "CONFLICT" in msg or "conflitto" in msg.lower():
+                return ok, msg
+
+        # Fallback API GitHub update-branch
+        async with httpx.AsyncClient(
+            base_url=self.base_url, headers=self._headers(), timeout=25.0
+        ) as client:
+            resp = await client.put(
+                f"/repos/{pr.repo_full_name}/pulls/{pr.pr_number}/update-branch",
+                json={"expected_head_sha": pr.head_sha},
+            )
+            if resp.status_code in (200, 202):
+                return (
+                    True,
+                    f"Branch `{pr.head_branch}` aggiornato con successo rispetto a `{pr.base_branch}`.",
+                )
+            data = resp.json()
+            return False, data.get("message", f"HTTP {resp.status_code}")
+
+    def _git_cli_rebase(self, pr: PRContext) -> tuple[bool, str]:
+        """Clona i branch in una cartella temporanea, esegue `git rebase` e `git push --force-with-lease`."""
+        token = self.config.github_token
+        base_repo_url = f"https://x-access-token:{token}@github.com/{pr.repo_full_name}.git"
+        head_repo = pr.head_repo_full_name or pr.repo_full_name
+        head_repo_url = f"https://x-access-token:{token}@github.com/{head_repo}.git"
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="ocabot_rebase_") as tmpdir:
+                def _run(args: list[str]) -> subprocess.CompletedProcess:
+                    return subprocess.run(
+                        args,
+                        cwd=tmpdir,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        universal_newlines=True,
+                        check=False,
+                    )
+
+                _run(["git", "init"])
+                _run(["git", "config", "user.name", "odoo-pr-bot"])
+                _run(["git", "config", "user.email", "odoo-pr-bot@users.noreply.github.com"])
+                _run(["git", "remote", "add", "origin", base_repo_url])
+                _run(["git", "remote", "add", "head_repo", head_repo_url])
+
+                fetch_base = _run(["git", "fetch", "--depth=100", "origin", pr.base_branch])
+                if fetch_base.returncode != 0:
+                    return False, f"Impossibile scaricare `{pr.base_branch}`: {fetch_base.stderr.strip()}"
+
+                fetch_head = _run(["git", "fetch", "--depth=100", "head_repo", pr.head_branch])
+                if fetch_head.returncode != 0:
+                    return False, f"Impossibile scaricare `{pr.head_branch}`: {fetch_head.stderr.strip()}"
+
+                _run(["git", "checkout", "-B", pr.head_branch, "FETCH_HEAD"])
+
+                rebase_proc = _run(["git", "rebase", f"origin/{pr.base_branch}"])
+                if rebase_proc.returncode != 0:
+                    _run(["git", "rebase", "--abort"])
+                    return (
+                        False,
+                        f"Conflitto durante il rebase di `{pr.head_branch}` su `origin/{pr.base_branch}` "
+                        "(CONFLICT). Risolvi i conflitti localmente ed esegui il push.",
+                    )
+
+                push_proc = _run(
+                    [
+                        "git",
+                        "push",
+                        "--force-with-lease",
+                        "head_repo",
+                        f"HEAD:refs/heads/{pr.head_branch}",
+                    ]
+                )
+                if push_proc.returncode != 0:
+                    return False, f"Errore durante il push del rebase: {push_proc.stderr.strip()}"
+
+                return (
+                    True,
+                    f"Rebase di `{pr.head_branch}` su `{pr.base_branch}` completato e pushato con successo.",
+                )
+        except Exception as exc:
+            logger.debug("Fallback da git CLI rebase: %s", exc)
+            return False, str(exc)

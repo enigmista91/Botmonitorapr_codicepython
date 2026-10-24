@@ -189,6 +189,22 @@ async def handle_comment_commands(
                 repo_full_name, pr_number, config, post_full_review=True
             )
 
+        elif cmd.action == "rebase":
+            pr = await gh.build_pr_context(repo_full_name, pr_number)
+            rebased_ok, msg = await gh.rebase_pull_request(pr)
+            if rebased_ok:
+                await gh.post_issue_comment(
+                    repo_full_name,
+                    pr_number,
+                    f"🔄 **Rebase completato:** {msg}",
+                )
+            else:
+                await gh.post_issue_comment(
+                    repo_full_name,
+                    pr_number,
+                    f"⚠️ **Impossibile completare il rebase automatico:** {msg}",
+                )
+
         elif cmd.action == "bump":
             pr = await gh.build_pr_context(repo_full_name, pr_number)
             bump_type = cmd.arg or "patch"

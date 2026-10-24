@@ -25,10 +25,11 @@ def parse_comment_commands(
     """Estrae tutti i comandi destinati al bot presenti nel testo di un commento GitHub.
 
     Comandi supportati (con `/bot` o `/ocabot`):
-    - `/bot review`
-    - `/bot merge [patch|minor|major|nobump]`
-    - `/bot bump <patch|minor|major>`
-    - `/bot help`
+    - `/bot review` (o `/ocabot review`)
+    - `/bot rebase` (o `/ocabot rebase`)
+    - `/bot merge [patch|minor|major|nobump]` (o `/ocabot merge ...`)
+    - `/bot bump <patch|minor|major>` (o `/ocabot bump ...`)
+    - `/bot help` (o `/ocabot help`)
     """
     if not comment_body:
         return []
@@ -54,6 +55,10 @@ def parse_comment_commands(
         if action in ("review", "check"):
             commands.append(
                 BotCommand(prefix=prefix, action="review", arg=arg, raw_line=line.strip())
+            )
+        elif action == "rebase":
+            commands.append(
+                BotCommand(prefix=prefix, action="rebase", arg=None, raw_line=line.strip())
             )
         elif action == "merge":
             bump_mode = arg if arg in VALID_BUMP_MODES else "nobump"
@@ -88,6 +93,7 @@ def format_help_message(prefixes: list[str] | None = None) -> str:
         "| Comando | Descrizione |\n"
         "| :--- | :--- |\n"
         f"| `{main_prefix} review` | Esegue nuovamente l'analisi statica Odoo (18.0/19.0/20.0), il controllo ACL e la review AI |\n"
+        f"| `{main_prefix} rebase` | Esegue il rebase del branch della PR sul branch di destinazione (`18.0`, `19.0`, `20.0`) |\n"
         f"| `{main_prefix} bump patch` | Incrementa la versione patch (`X.Y.Z+1`) nei `__manifest__.py` dei moduli toccati |\n"
         f"| `{main_prefix} bump minor` | Incrementa la versione minor (`X.Y+1.0`) nei `__manifest__.py` dei moduli toccati |\n"
         f"| `{main_prefix} bump major` | Incrementa la versione major (`X+1.0.0`) nei `__manifest__.py` dei moduli toccati |\n"

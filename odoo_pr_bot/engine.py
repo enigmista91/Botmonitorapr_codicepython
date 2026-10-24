@@ -243,7 +243,7 @@ def format_markdown_report(
     main_cmd = config.command_prefixes[0] if config.command_prefixes else "/bot"
     lines.append("---")
     lines.append(
-        f"💡 *Comandi rapidi: `{main_cmd} review` | `{main_cmd} bump <patch|minor|major>` | "
-        f"`{main_cmd} merge [patch|minor|major|nobump]` | `{main_cmd} help`*"
+        f"💡 *Comandi rapidi: `{main_cmd} review` | `{main_cmd} rebase` | "
+        f"`{main_cmd} bump <patch|minor|major>` | `{main_cmd} merge [patch|minor|major|nobump]` | `{main_cmd} help`*"
     )
     return "\n".join(lines)

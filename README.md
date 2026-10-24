@@ -59,6 +59,7 @@ Se configurata la chiave API (`GEMINI_API_KEY` oppure `OPENAI_API_KEY`), il bot 
 ### 4. Comandi Interattivi nei Commenti PR (`/bot` e `/ocabot`)
 Scrivendo un commento nella PR puoi controllare il bot:
 - `/bot review` (oppure `/ocabot review`): riesegue la review completa della PR.
+- `/bot rebase` (oppure `/ocabot rebase`): esegue il rebase lineare (`git rebase` + `git push --force-with-lease`) del branch della PR sul branch di destinazione (`18.0`, `19.0`, `20.0`), segnalando eventuali conflitti.
 - `/bot bump patch` | `/bot bump minor` | `/bot bump major`: aggiorna automaticamente la versione a 5 componenti in `__manifest__.py` e fa commit sul branch della PR.
 - `/bot merge [patch|minor|major|nobump]`: verifica che non ci siano errori statici e che la CI non sia fallita, incrementa opzionalmente la versione in `__manifest__.py`, effettua il merge della PR e applica la label `merged`.
 - `/bot help`: mostra la tabella dei comandi disponibili.

@@ -170,14 +170,16 @@ def test_parse_comment_commands() -> None:
 Ottimo lavoro sulla PR!
 > /bot merge major
 /bot review
+/ocabot rebase
 /ocabot bump minor
 /bot merge patch
 """
     cmds = parse_comment_commands(comment)
-    assert len(cmds) == 3
+    assert len(cmds) == 4
     assert (cmds[0].action, cmds[0].arg) == ("review", None)
-    assert (cmds[1].action, cmds[1].arg) == ("bump", "minor")
-    assert (cmds[2].action, cmds[2].arg) == ("merge", "patch")
+    assert (cmds[1].action, cmds[1].arg) == ("rebase", None)
+    assert (cmds[2].action, cmds[2].arg) == ("bump", "minor")
+    assert (cmds[3].action, cmds[3].arg) == ("merge", "patch")
 
 
 @pytest.mark.asyncio
