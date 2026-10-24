@@ -7,6 +7,7 @@ from odoo_pr_bot.analyzers.manifest_analyzer import (
     analyze_manifest,
     extract_module_name_from_path,
 )
+from odoo_pr_bot.analyzers.precommit_analyzer import analyze_precommit_config
 from odoo_pr_bot.analyzers.python_analyzer import analyze_python_file
 from odoo_pr_bot.analyzers.xml_csv_analyzer import (
     analyze_security_csv,
@@ -95,6 +96,11 @@ async def evaluate_pull_request(
         elif cf.filename.lower().endswith(("readme.rst", "readme.md")):
             if mod_name and mod_name in report.modules:
                 report.modules[mod_name].has_readme = True
+
+        # f) Configurazione pre-commit (.pre-commit-config.yaml)
+        elif cf.filename.endswith((".pre-commit-config.yaml", ".pre-commit-config.yml")):
+            pc_findings = analyze_precommit_config(cf.filename, content)
+            report.findings.extend(pc_findings)
 
     # 2. Controllo incrociato: nuovi modelli Odoo concreti senza ir.model.access.csv nella PR
     for mod_name, mod_info in report.modules.items():

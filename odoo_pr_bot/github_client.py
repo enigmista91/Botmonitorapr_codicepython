@@ -83,7 +83,7 @@ class GitHubClient:
                 content: str | None = None
 
                 if status != "removed" and filename.endswith(
-                    (".py", ".xml", ".csv", ".rst", ".md")
+                    (".py", ".xml", ".csv", ".rst", ".md", ".yaml", ".yml")
                 ):
                     content = await self._fetch_file_content(
                         client, repo_full_name, filename, head_sha

@@ -1,0 +1,7 @@
+- id: odoo-pr-bot
+  name: Odoo PR Bot (18.0 / 19.0 / 20.0) Static & Security Check
+  description: "Analizza manifest, modelli Python, viste XML e ACL ir.model.access.csv per Odoo 18.0, 19.0 e 20.0"
+  entry: odoo-pr-bot pre-commit
+  language: python
+  types_or: [python, xml, csv, yaml]
+  pass_filenames: true

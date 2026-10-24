@@ -102,7 +102,28 @@ Configura poi su GitHub (**Settings -> Webhooks**) l'URL `https://tuo-dominio/we
 - `Pull request reviews`
 - `Issue comments`
 
-### 5. Utilizzo tramite GitHub Actions (Zero-Server)
+### 5. Utilizzo con `pre-commit` (Controllo automatico prima di ogni `git commit`)
+Il repository espone un hook ufficiale definito in [`.pre-commit-hooks.yaml`](.pre-commit-hooks.yaml) e un template completo pronto all'uso in [`templates/.pre-commit-config.odoo.yaml`](templates/.pre-commit-config.odoo.yaml).
+
+Aggiungi questo blocco nel file `.pre-commit-config.yaml` dei repository Odoo (`18.0`, `19.0`, `20.0`) della tua organizzazione:
+
+```yaml
+repos:
+  - repo: https://github.com/enigmista91/Botmonitorapr_codicepython
+    rev: main
+    hooks:
+      - id: odoo-pr-bot
+        args: ["--series", "18.0"] # Oppure "19.0" o "20.0"
+```
+
+Poi attiva l'hook localmente con:
+```bash
+pip install pre-commit
+pre-commit install
+```
+Ad ogni `git commit`, il bot analizzerà istantaneamente i file modificati (`.py`, `.xml`, `.csv`, `.yaml`) bloccando il commit in caso di errori critici.
+
+### 6. Utilizzo tramite GitHub Actions (Zero-Server)
 Il file [`.github/workflows/odoo-pr-bot.yml`](.github/workflows/odoo-pr-bot.yml) è già pronto per eseguire automaticamente il bot ad ogni apertura/aggiornamento di PR (sui branch `18.0`, `19.0`, `20.0`, `main`, `master`) e ad ogni commento `/bot` o `/ocabot`.
 
 ---

@@ -10,11 +10,13 @@ from odoo_pr_bot.analyzers.manifest_analyzer import (
     analyze_manifest,
     bump_manifest_version,
 )
+from odoo_pr_bot.analyzers.precommit_analyzer import analyze_precommit_config
 from odoo_pr_bot.analyzers.python_analyzer import analyze_python_file
 from odoo_pr_bot.analyzers.xml_csv_analyzer import (
     analyze_security_csv,
     analyze_xml_file,
 )
+from odoo_pr_bot.cli import run_precommit_hook
 from odoo_pr_bot.config import BotConfig
 from odoo_pr_bot.engine import evaluate_pull_request, format_markdown_report
 from odoo_pr_bot.models import ChangedFile, PRContext, Severity
@@ -241,3 +243,42 @@ def test_webhook_signature_verification() -> None:
     sig = "sha256=" + hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     assert verify_webhook_signature(body, secret, sig) is True
     assert verify_webhook_signature(body, secret, "sha256=invalid") is False
+
+
+def test_precommit_config_analyzer() -> None:
+    bad_yaml = "repos:\n  - repo: https://github.com/example/hook\n    rev:\n"
+    findings = analyze_precommit_config(".pre-commit-config.yaml", bad_yaml)
+    rules = {f.rule_id for f in findings}
+    assert "ODOO-PC001" in rules
+    assert "ODOO-PC002" in rules
+
+    good_yaml = (
+        "repos:\n"
+        "  - repo: https://github.com/enigmista91/Botmonitorapr_codicepython\n"
+        "    rev: main\n"
+        "    hooks:\n"
+        "      - id: odoo-pr-bot\n"
+    )
+    assert len(analyze_precommit_config(".pre-commit-config.yaml", good_yaml)) == 0
+
+
+@pytest.mark.asyncio
+async def test_precommit_cli_hook(tmp_path) -> None:
+    mod_dir = tmp_path / "sale_clean"
+    mod_dir.mkdir()
+    manifest_file = mod_dir / "__manifest__.py"
+    manifest_file.write_text(
+        '{\n'
+        '    "name": "Sale Clean",\n'
+        '    "version": "18.0.1.0.0",\n'
+        '    "author": "OCA",\n'
+        '    "license": "LGPL-3",\n'
+        '    "depends": ["base"],\n'
+        '    "maintainers": ["enigmista91"],\n'
+        '    "summary": "Clean",\n'
+        '}\n',
+        encoding="utf-8",
+    )
+    exit_code = await run_precommit_hook([str(manifest_file)], series="18.0")
+    assert exit_code == 0
+

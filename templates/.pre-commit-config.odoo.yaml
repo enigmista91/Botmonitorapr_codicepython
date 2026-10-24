@@ -1,0 +1,34 @@
+# Template .pre-commit-config.yaml per repository di moduli Odoo (18.0, 19.0, 20.0)
+# Copia questo file come `.pre-commit-config.yaml` nella root dei repository Odoo della tua organizzazione
+# ed esegui: `pre-commit install`
+
+default_language_version:
+  python: python3
+
+repos:
+  # 1. Controlli generali file (spazi finali, conflitti merge, sintassi YAML/XML)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-xml
+      - id: check-yaml
+      - id: debug-statements
+
+  # 2. Linting & Formattazione veloce Python con Ruff (standard moderno Odoo 18/19/20)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # 3. Odoo PR Bot — Controllo specifico Odoo 18.0 / 19.0 / 20.0 (Manifest, ORM, XML <list>/<chatter/>, ACL CSV)
+  - repo: https://github.com/enigmista91/Botmonitorapr_codicepython
+    rev: main
+    hooks:
+      - id: odoo-pr-bot
+        # Cambia --series in 18.0, 19.0 o 20.0 in base al branch del repository
+        args: ["--series", "18.0"]
